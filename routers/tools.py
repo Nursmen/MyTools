@@ -4,7 +4,7 @@ import dotenv
 from pydantic import BaseModel
 from typing import Union, List, Optional
 
-from .unstrToStr import unstructerToStr
+from .unstrToStr import unstructerToStr, unstructerToStrArray
 from .read_file import read_pdf, read_csv, read_txt, read_html, read_excel, read_json, read_xml, read_docx, read_pptx, read_markdown
 from .codeInterpreter import code_interpret, upload_file_for_code_interpreter
 from .rag import rag
@@ -69,20 +69,7 @@ async def struct(struct: Struct):
 
 @router.post("/struct_array/", tags=["tools"])
 async def struct(struct: Struct):
-
-    call = struct.schema.split(' ')[1][:-1]
-
-    res = [unstructerToStr(struct.schema, d) for d in range(struct.data)]
-
-    for i in range(1, len(res)):
-
-        for entry in res[i]['data']:
-            if call in entry and call in res[0]['data'][0]:
-                res[0]['data'].append(entry[call])
-            else:
-                res[0]['data'].append(entry)
-
-    return res[0]
+    return unstructerToStrArray(struct.schema, struct.data)
 
 @router.post("/read/", tags=["tools"])
 async def read(file: UploadFile = File(...)):
