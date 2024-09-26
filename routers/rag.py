@@ -13,12 +13,13 @@ from langchain_community.retrievers import (
 import random
 import os
 
+# Environment variables
 URL = os.getenv('WEAVIATE_URL')
 APIKEY = os.getenv('WEAVIATE_API_KEY')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+COHERE_API_KEY = os.getenv('COHERE_API')
 
-cohere_api_key = os.getenv('COHERE_API')
-
+# Initialize Weaviate client
 client = weaviate.Client(
     url=URL,
     auth_client_secret=weaviate.AuthApiKey(api_key=APIKEY),
@@ -27,26 +28,35 @@ client = weaviate.Client(
     },
 )
 
-def rag(docs: List[str]):
+def rag(docs: List[str]) -> str:
     """
     RAG function that processes and indexes documents for efficient retrieval in NLP tasks.
-    """
     
-    docs = [Document(page_content=doc) for doc in docs]
+    Args:
+        docs (List[str]): List of document strings to be processed and indexed.
+    
+    Returns:
+        str: The name of the created index.
+    """
+    # Convert strings to Document objects
+    documents = [Document(page_content=doc) for doc in docs]
 
-    name = f"RAG_{random.randint(1, 1000000)}"
+    # Generate a unique name for the index
+    index_name = f"RAG_{random.randint(1, 1000000)}"
 
+    # Initialize and configure the retriever
     retriever = WeaviateHybridSearchRetriever(
         client=client,
-        index_name=name,
+        index_name=index_name,
         text_key="text",
         attributes=[],
         create_schema_if_missing=True,
     )
 
-    retriever.add_documents(docs)
+    # Add documents to the index
+    retriever.add_documents(documents)
 
-    return name
+    return index_name
 
 if __name__ == "__main__":
     docs = [

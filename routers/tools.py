@@ -32,7 +32,7 @@ class Code(BaseModel):
     code: str
 
 class UserFile(BaseModel):
-    file: UploadFile
+    file: Union[UploadFile, str]
 
 class RAG(BaseModel):
     docs: List[str]
@@ -43,17 +43,20 @@ async def crawl(crawl: Crawl):
     Crawls a website and returns the content of the page and the content of the pages linked on the page
     """
 
-    first = app.scrape_url(crawl.url)
-    links = first['linksOnPage']
-    contents = []
-    contents.append(first['content'])
-    for link in links:
+    first_page = app.scrape_url(crawl.url)
+    links = first_page['linksOnPage']
+    contents = [first_page['content']]
+
+    for link in links[:crawl.limit]:
         if link == crawl.url:
             continue
         try:
-            contents.append(app.scrape_url(link)['content'])
-        except:
+            page_content = app.scrape_url(link)['content']
+            contents.append(page_content)
+        except Exception as e:
+            print(f"Error scraping {link}: {str(e)}")
             continue
+
     return contents
 
 @router.post("/map/", tags=["tools"])
@@ -118,8 +121,8 @@ async def code(code: Code):
     return code_interpret(code.code)
 
 @router.post("/file_code/", tags=["tools"])
-async def file(file: UserFile):
-    return upload_file_for_code_interpreter(file.file_url)
+async def file_code(file: UserFile):
+    return upload_file_for_code_interpreter(file.file)
 
 @router.post("/rag/", tags=["tools"])
 async def rag(rag: RAG):

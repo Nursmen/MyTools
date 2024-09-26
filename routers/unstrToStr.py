@@ -1,47 +1,4 @@
-import json
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-
-import dotenv
-
-dotenv.load_dotenv()
-
-llm = ChatOpenAI(model_name="gpt-3.5-turbo")
-
-prompt_template = """
-You are a data transformation expert. Given the following schema and unstructured data, convert the data into the structured format as described. If you cannot return valid output, return nothing.
-
-Schema:
-{schema}
-
-Data:
-{data}
-
-Output:
-{{
-    "data": [
-        {{
-            "...": {{
-                "...": [...],
-                "...": [...],
-                "...": [...],
-            }}
-        }},
-        {{
-            "...": {{
-                "...": [...],
-                "...": [...],
-                "...": [...],
-            }}
-        }},
-    ]
-}}
-"""
-
-prompt = PromptTemplate(template=prompt_template, input_variables=["schema", "data"])
-
-chain = prompt | llm
+from fieldGenerator import generate_pydantic_model, struct
 
 def unstructerToStr(schema, data):
     """
@@ -54,21 +11,16 @@ def unstructerToStr(schema, data):
     Returns:
     dict: The structured data.
     """
-    inputs = {
-        "schema": schema,
-        "data": data
-    }
     
-    result = chain.invoke(inputs)
-    try:
-        structured_data = json.loads(result.content)
-    except:
-        print(result.content)
-        structured_data = json.loads('{"data":[]}')
-    return structured_data
+    model, generated_json = generate_pydantic_model(schema)
+
+    result = struct(data, model)
+    
+    return result
+
 
 if __name__ == "__main__":
-    schema = "Name: John Doe\nAge: 30\nCity: New York"
-    data = "Name: John Doe\nAge: 30\nCity: New York"
+    schema = "class Person: name: str, age: int, city: str"
+    data = "A boy named John Doe, aged 30, lives in New York."
     structured_data = unstructerToStr(schema, data) 
     print(structured_data)
